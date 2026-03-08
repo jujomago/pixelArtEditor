@@ -16,12 +16,27 @@
           Cada celda acepta valores entre 0 y 9. Al cambiar un numero, el pixel se actualiza
           automaticamente con su color asignado.
         </p>
+        <div class="template-selector">
+          <label for="pixel-art-template">Plantilla pixel art</label>
+          <select id="pixel-art-template" aria-label="Seleccionar plantilla pixel art">
+            <option value="leon">Leon</option>
+            <option value="conejo">Conejo</option>
+            <option value="perro">Perro</option>
+            <option value="mario">Mario</option>
+          </select>
+        </div>
+        <div class="editor-actions">
+          <button type="button" id="clear-grid-btn">Limpiar</button>
+          <button type="button" id="export-grid-btn">Exportar matriz</button>
+        </div>
       </div>
 
-      <div class="legend" id="legend" aria-label="Leyenda de colores"></div>
+      <div class="editor-zone">
+        <div class="legend" id="legend" aria-label="Leyenda de colores"></div>
 
-      <div class="editor-wrap">
-        <div class="editor" id="matrix-editor" aria-label="Editor de matriz 20 por 20"></div>
+        <div class="editor-wrap">
+          <div class="editor" id="matrix-editor" aria-label="Editor de matriz 20 por 20"></div>
+        </div>
       </div>
     </section>
 
@@ -35,6 +50,6 @@
     </section>
   </main>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

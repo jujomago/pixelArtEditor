@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Art Dinamico</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="panel">
+      <div class="panel__header">
+        <p class="eyebrow">Pixel Art Dinamico</p>
+        <h1>Matriz 20 x 20</h1>
+        <p class="description">
+          Cada celda acepta valores entre 0 y 9. Al cambiar un numero, el pixel se actualiza
+          automaticamente con su color asignado.
+        </p>
+      </div>
+
+      <div class="legend" id="legend" aria-label="Leyenda de colores"></div>
+
+      <div class="editor-wrap">
+        <div class="editor" id="matrix-editor" aria-label="Editor de matriz 20 por 20"></div>
+      </div>
+    </section>
+
+    <section class="panel panel--preview">
+      <div class="panel__header">
+        <p class="eyebrow">Vista Previa</p>
+        <h2>Render de pixeles</h2>
+      </div>
+
+      <div class="pixel-art" id="pixel-art" aria-label="Vista previa de pixel art"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

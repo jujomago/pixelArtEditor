@@ -175,11 +175,7 @@ Modifica las dimensiones en `js/data/initialPixelArt.js` y ajusta el CSS corresp
 
 Este proyecto está bajo la Licencia MIT - mira el archivo [LICENSE](LICENSE) para detalles.
 
-## 👨‍💻 Autor
 
-**Josue Mancilla**  
-[GitHub](https://github.com/jujomago)  
-[Portfolio](https://josuemancilla.vercel.app)
 
 ---
 

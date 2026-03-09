@@ -2,6 +2,9 @@
 
 Un editor de pixel art interactivo creado con JavaScript vanilla, HTML5 y CSS3. Permite crear arte pixelado usando una matriz de 20x20 con colores numerados del 0-9.
 
+
+![Pixel Art Editor](screenshot.png)
+
 ## 🎨 Características
 
 - **Editor de matriz 20x20**: Grid interactivo para crear pixel art

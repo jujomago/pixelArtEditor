@@ -1,10 +1,5 @@
 import { PixelMatrix } from "../models/PixelMatrix.js";
-import {
-  delay,
-  getCellKey,
-  hexToRgba,
-  parseCellKey,
-} from "../utils/editorUtils.js";
+import { delay, getCellKey, hexToRgba, parseCellKey } from "../utils/editorUtils.js";
 
 export class PixelArtEditor {
   constructor(options) {
@@ -25,6 +20,7 @@ export class PixelArtEditor {
     this.selectedCells = new Set();
     this.isDraggingSelection = false;
     this.dragFillValue = null;
+    this.currentValue = null;
     this.lastSingleEdit = null;
     this.templateAnimationToken = 0;
     this.isTemplateAnimating = false;
@@ -33,7 +29,6 @@ export class PixelArtEditor {
   init() {
     this.bindGlobalEvents();
     this.bindThemeToggle();
-    // this.bindPaletteSelector();
     this.bindTemplateSelector();
     this.bindActionButtons();
     this.bindScaleButtons();
@@ -42,7 +37,6 @@ export class PixelArtEditor {
     this.renderLegend();
     this.renderEditor();
     this.renderPixelArt();
-    //this.updatePaletteUI("classic");
   }
 
   bindThemeToggle() {
@@ -134,6 +128,7 @@ export class PixelArtEditor {
     this.updatePixel(rowIndex, columnIndex, nextValue);
     if (shouldRecordLastEdit) {
       this.lastSingleEdit = { rowIndex, columnIndex, value: nextValue };
+      this.highlightLegendValue(nextValue);
     }
 
     return nextValue;
@@ -146,35 +141,20 @@ export class PixelArtEditor {
     });
   }
 
-  isAdjacentToLastEditedCell(rowIndex, columnIndex) {
-    if (!this.lastSingleEdit) {
-      return false;
-    }
-
-    const rowDistance = Math.abs(this.lastSingleEdit.rowIndex - rowIndex);
-    const columnDistance = Math.abs(
-      this.lastSingleEdit.columnIndex - columnIndex,
-    );
-
-    if (rowDistance === 0 && columnDistance === 0) {
-      return false;
-    }
-
-    return rowDistance <= 1 && columnDistance <= 1;
-  }
-
   startSelection(rowIndex, columnIndex) {
     this.isDraggingSelection = true;
     this.clearSelection();
     this.selectCell(rowIndex, columnIndex);
 
-    if (this.isAdjacentToLastEditedCell(rowIndex, columnIndex)) {
+    if (this.currentValue !== null) {
+      this.applyValueToCell(rowIndex, columnIndex, this.currentValue, false);
+      this.dragFillValue = this.currentValue;
+    } else if (this.lastSingleEdit) {
       this.dragFillValue = this.lastSingleEdit.value;
       this.applyValueToCell(rowIndex, columnIndex, this.dragFillValue, false);
-      return;
+    } else {
+      this.dragFillValue = null;
     }
-
-    this.dragFillValue = null;
   }
 
   continueSelection(rowIndex, columnIndex) {
@@ -285,7 +265,6 @@ export class PixelArtEditor {
       const nextColor = input.value.toLowerCase();
       this.colorMap[this.activeLegendValue] = nextColor;
       this.updateLegendItem(this.activeLegendValue, nextColor);
-      //this.refreshPaletteAcrossGrid();
     });
 
     document.body.appendChild(input);
@@ -338,20 +317,23 @@ export class PixelArtEditor {
     }
   }
 
-  /*refreshPaletteAcrossGrid() {
-    this.matrix.forEachCell((value, rowIndex, columnIndex) => {
-      const cell = this.getCellElement(rowIndex, columnIndex);
-      if (cell) {
-        this.updateEditorCellAppearance(cell, value);
-      }
-
-      this.updatePixel(rowIndex, columnIndex, value);
+  highlightLegendValue(value) {
+    const items = this.legend.querySelectorAll(".legend__item");
+    items.forEach((item) => {
+      item.classList.remove("legend__item--active");
     });
-  }*/
+
+    const activeItem = this.legend.querySelector(`[data-value="${String(value)}"]`);
+    if (activeItem) {
+      activeItem.classList.add("legend__item--active");
+    }
+  }
+
   resetInteractionState() {
     this.clearSelection();
     this.dragFillValue = null;
     this.lastSingleEdit = null;
+    this.currentValue = null;
   }
 
   syncRenderedGridWithMatrix() {
@@ -574,12 +556,14 @@ export class PixelArtEditor {
 
   bindGlobalEvents() {
     document.addEventListener("mouseup", () => {
-      this.isDraggingSelection = false;
-      this.dragFillValue = null;
+      if (this.isDraggingSelection) {
+        this.isDraggingSelection = false;
+        this.dragFillValue = null;
+      }
     });
 
     document.addEventListener("mousedown", (event) => {
-      if (!this.editor.contains(event.target)) {
+      if (!this.editor.contains(event.target) && !this.legend.contains(event.target)) {
         this.clearSelection();
       }
     });
@@ -593,19 +577,15 @@ export class PixelArtEditor {
         return;
       }
 
-      if (this.selectedCells.size === 0) {
-        return;
-      }
-
-      event.preventDefault();
       const nextValue = Number.parseInt(event.key, 10);
-      this.applyValueToSelection(nextValue);
+      this.currentValue = nextValue;
+      this.highlightLegendValue(nextValue);
 
-      if (this.selectedCells.size === 1) {
-        const onlyKey = this.selectedCells.values().next().value;
-        const { rowIndex, columnIndex } = parseCellKey(onlyKey);
-        this.lastSingleEdit = { rowIndex, columnIndex, value: nextValue };
+      if (this.selectedCells.size > 0) {
+        event.preventDefault();
+        this.applyValueToSelection(nextValue);
       }
+      // Si no hay celdas seleccionadas, el número queda activo para cuando se seleccionen celdas después
     });
   }
 }

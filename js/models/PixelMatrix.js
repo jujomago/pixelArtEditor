@@ -1,3 +1,5 @@
+import { clampToRange, createZeroMatrix, normalizeTextValue } from "../utils/matrixUtils.js";
+
 export class PixelMatrix {
   constructor(initialMatrix, minValue = 0, maxValue = 9) {
     this.minValue = minValue;
@@ -6,25 +8,15 @@ export class PixelMatrix {
   }
 
   static createZeroMatrix(size = 20) {
-    return Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
+    return createZeroMatrix(size);
   }
 
   clamp(value) {
-    const parsedValue = Number.parseInt(value, 10);
-    if (Number.isNaN(parsedValue)) {
-      return this.minValue;
-    }
-
-    return Math.max(this.minValue, Math.min(this.maxValue, parsedValue));
+    return clampToRange(value, this.minValue, this.maxValue);
   }
 
   normalizeTextValue(rawText) {
-    const onlyDigits = String(rawText).replace(/\D/g, "");
-    if (onlyDigits.length === 0) {
-      return this.minValue;
-    }
-
-    return this.clamp(onlyDigits[onlyDigits.length - 1]);
+    return normalizeTextValue(rawText, this.minValue, this.maxValue);
   }
 
   getRowCount() {
@@ -52,9 +44,11 @@ export class PixelMatrix {
       }
     }
   }
+
   toArray() {
     return this.grid.map((row) => [...row]);
   }
+
   forEachCell(callback) {
     this.grid.forEach((row, rowIndex) => {
       row.forEach((value, columnIndex) => {

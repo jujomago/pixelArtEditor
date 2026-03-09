@@ -1,4 +1,10 @@
 import { PixelMatrix } from "../models/PixelMatrix.js";
+import {
+  delay,
+  getCellKey,
+  hexToRgba,
+  parseCellKey,
+} from "../utils/editorUtils.js";
 
 export class PixelArtEditor {
   constructor(options) {
@@ -12,6 +18,9 @@ export class PixelArtEditor {
     this.templateSelector = document.getElementById("pixel-art-template");
     this.clearGridButton = document.getElementById("clear-grid-btn");
     this.exportGridButton = document.getElementById("export-grid-btn");
+    this.exportImageButton = document.getElementById("export-image-btn");
+    this.colorPickerInput = null;
+    this.activeLegendValue = null;
 
     this.selectedCells = new Set();
     this.isDraggingSelection = false;
@@ -23,54 +32,50 @@ export class PixelArtEditor {
 
   init() {
     this.bindGlobalEvents();
+    this.bindThemeToggle();
+    // this.bindPaletteSelector();
     this.bindTemplateSelector();
     this.bindActionButtons();
+    this.bindScaleButtons();
+    this.bindExportImageButton();
+    this.setupColorPicker();
     this.renderLegend();
     this.renderEditor();
     this.renderPixelArt();
+    //this.updatePaletteUI("classic");
   }
 
-  delay(ms) {
-    return new Promise((resolve) => {
-      window.setTimeout(resolve, ms);
+  bindThemeToggle() {
+    const themeToggle = document.getElementById("theme-toggle");
+    if (!themeToggle) {
+      return;
+    }
+
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      themeToggle.querySelector(".theme-toggle-icon").textContent = "☀️";
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const isDark =
+        document.documentElement.getAttribute("data-theme") === "dark";
+      if (isDark) {
+        document.documentElement.removeAttribute("data-theme");
+        themeToggle.querySelector(".theme-toggle-icon").textContent = "🌙";
+        localStorage.setItem("theme", "light");
+      } else {
+        document.documentElement.setAttribute("data-theme", "dark");
+        themeToggle.querySelector(".theme-toggle-icon").textContent = "☀️";
+        localStorage.setItem("theme", "dark");
+      }
     });
   }
 
-  getCellKey(rowIndex, columnIndex) {
-    return `${rowIndex}:${columnIndex}`;
-  }
-
-  parseCellKey(key) {
-    const [rowString, columnString] = key.split(":");
-    return {
-      rowIndex: Number.parseInt(rowString, 10),
-      columnIndex: Number.parseInt(columnString, 10),
-    };
-  }
-
   getCellElement(rowIndex, columnIndex) {
-    return this.editor.querySelector(`[data-row="${rowIndex}"][data-column="${columnIndex}"]`);
-  }
-
-  hexToRgba(hexColor, alpha) {
-    const normalized = String(hexColor).replace("#", "");
-    const safeHex =
-      normalized.length === 3
-        ? normalized
-            .split("")
-            .map((char) => char + char)
-            .join("")
-        : normalized;
-
-    const red = Number.parseInt(safeHex.slice(0, 2), 16);
-    const green = Number.parseInt(safeHex.slice(2, 4), 16);
-    const blue = Number.parseInt(safeHex.slice(4, 6), 16);
-
-    if ([red, green, blue].some((value) => Number.isNaN(value))) {
-      return "rgba(255, 255, 255, 0.2)";
-    }
-
-    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    return this.editor.querySelector(
+      `[data-row="${rowIndex}"][data-column="${columnIndex}"]`,
+    );
   }
 
   getEditorCellBackground(value) {
@@ -79,7 +84,7 @@ export class PixelArtEditor {
       return "rgba(255, 255, 255, 0.2)";
     }
 
-    return this.hexToRgba(color, 0.2);
+    return hexToRgba(color, 0.2);
   }
 
   updateEditorCellAppearance(cell, value) {
@@ -92,7 +97,7 @@ export class PixelArtEditor {
 
   clearSelection() {
     this.selectedCells.forEach((key) => {
-      const { rowIndex, columnIndex } = this.parseCellKey(key);
+      const { rowIndex, columnIndex } = parseCellKey(key);
       const cell = this.getCellElement(rowIndex, columnIndex);
       if (cell) {
         cell.classList.remove("cell-input--selected");
@@ -103,7 +108,7 @@ export class PixelArtEditor {
   }
 
   selectCell(rowIndex, columnIndex) {
-    const key = this.getCellKey(rowIndex, columnIndex);
+    const key = getCellKey(rowIndex, columnIndex);
     if (this.selectedCells.has(key)) {
       return;
     }
@@ -136,7 +141,7 @@ export class PixelArtEditor {
 
   applyValueToSelection(nextValue) {
     this.selectedCells.forEach((key) => {
-      const { rowIndex, columnIndex } = this.parseCellKey(key);
+      const { rowIndex, columnIndex } = parseCellKey(key);
       this.applyValueToCell(rowIndex, columnIndex, nextValue, false);
     });
   }
@@ -147,7 +152,9 @@ export class PixelArtEditor {
     }
 
     const rowDistance = Math.abs(this.lastSingleEdit.rowIndex - rowIndex);
-    const columnDistance = Math.abs(this.lastSingleEdit.columnIndex - columnIndex);
+    const columnDistance = Math.abs(
+      this.lastSingleEdit.columnIndex - columnIndex,
+    );
 
     if (rowDistance === 0 && columnDistance === 0) {
       return false;
@@ -202,6 +209,145 @@ export class PixelArtEditor {
     }
   }
 
+  bindScaleButtons() {
+    const scaleButtons = document.querySelectorAll(".scale-btn");
+    scaleButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        scaleButtons.forEach((b) => b.classList.remove("scale-btn--active"));
+        btn.classList.add("scale-btn--active");
+        const scale = btn.dataset.scale;
+        this.pixelArtGrid.setAttribute("data-scale", scale);
+      });
+    });
+
+    const defaultBtn = document.querySelector('.scale-btn[data-scale="1"]');
+    if (defaultBtn) {
+      defaultBtn.classList.add("scale-btn--active");
+    }
+  }
+
+  bindExportImageButton() {
+    if (!this.exportImageButton) {
+      return;
+    }
+
+    this.exportImageButton.addEventListener("click", () => {
+      this.exportImage();
+    });
+  }
+
+  exportImage() {
+    const rows = this.matrix.getRowCount();
+    const cols = this.matrix.getColumnCount();
+    const pixelSize = 16;
+    const canvas = document.createElement("canvas");
+    canvas.width = cols * pixelSize;
+    canvas.height = rows * pixelSize;
+    const ctx = canvas.getContext("2d");
+
+    this.matrix.forEachCell((value, rowIndex, columnIndex) => {
+      const color = this.colorMap[value] || "#ffffff";
+      ctx.fillStyle = color;
+      ctx.fillRect(
+        columnIndex * pixelSize,
+        rowIndex * pixelSize,
+        pixelSize,
+        pixelSize,
+      );
+    });
+
+    const link = document.createElement("a");
+    link.download = `pixel-art-${Date.now()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  setupColorPicker() {
+    if (this.colorPickerInput) {
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "color";
+    input.style.position = "fixed";
+    input.style.opacity = "0.01";
+    input.style.pointerEvents = "auto";
+    input.style.width = "36px";
+    input.style.height = "36px";
+    input.style.border = "0";
+    input.style.padding = "0";
+    input.style.zIndex = "9999";
+    input.addEventListener("input", () => {
+      if (this.activeLegendValue === null) {
+        return;
+      }
+
+      const nextColor = input.value.toLowerCase();
+      this.colorMap[this.activeLegendValue] = nextColor;
+      this.updateLegendItem(this.activeLegendValue, nextColor);
+      //this.refreshPaletteAcrossGrid();
+    });
+
+    document.body.appendChild(input);
+    this.colorPickerInput = input;
+  }
+
+  openColorPickerForValue(value, event) {
+    if (!this.colorPickerInput) {
+      return;
+    }
+
+    this.activeLegendValue = value;
+    const currentColor = this.colorMap[value] ?? "#ffffff";
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const x = event?.clientX ?? Math.floor(viewportWidth / 2);
+    const y = event?.clientY ?? Math.floor(viewportHeight / 2);
+
+    const left = Math.max(0, Math.min(viewportWidth - 36, x - 18));
+    const top = Math.max(0, Math.min(viewportHeight - 36, y - 18));
+    this.colorPickerInput.style.left = `${left}px`;
+    this.colorPickerInput.style.top = `${top}px`;
+    this.colorPickerInput.value = currentColor;
+    this.colorPickerInput.focus();
+
+    if (typeof this.colorPickerInput.showPicker === "function") {
+      this.colorPickerInput.showPicker();
+      return;
+    }
+
+    this.colorPickerInput.click();
+  }
+
+  updateLegendItem(value, color) {
+    const item = this.legend.querySelector(`[data-value="${value}"]`);
+    if (!item) {
+      return;
+    }
+
+    const swatch = item.querySelector(".legend__color");
+    const label = item.querySelector(".legend__label");
+
+    if (swatch) {
+      swatch.style.backgroundColor = color;
+    }
+
+    if (label) {
+      label.textContent = `${value} = ${color}`;
+    }
+  }
+
+  /*refreshPaletteAcrossGrid() {
+    this.matrix.forEachCell((value, rowIndex, columnIndex) => {
+      const cell = this.getCellElement(rowIndex, columnIndex);
+      if (cell) {
+        this.updateEditorCellAppearance(cell, value);
+      }
+
+      this.updatePixel(rowIndex, columnIndex, value);
+    });
+  }*/
   resetInteractionState() {
     this.clearSelection();
     this.dragFillValue = null;
@@ -273,7 +419,11 @@ export class PixelArtEditor {
     const drawSteps = [];
 
     for (let rowIndex = 0; rowIndex < targetGrid.length; rowIndex += 1) {
-      for (let columnIndex = 0; columnIndex < targetGrid[rowIndex].length; columnIndex += 1) {
+      for (
+        let columnIndex = 0;
+        columnIndex < targetGrid[rowIndex].length;
+        columnIndex += 1
+      ) {
         const value = targetGrid[rowIndex][columnIndex];
         if (value !== 0) {
           drawSteps.push({ rowIndex, columnIndex, value });
@@ -288,7 +438,7 @@ export class PixelArtEditor {
 
       const step = drawSteps[index];
       this.applyValueToCell(step.rowIndex, step.columnIndex, step.value, false);
-      await this.delay(14);
+      await delay(14);
     }
 
     if (currentToken === this.templateAnimationToken) {
@@ -298,16 +448,23 @@ export class PixelArtEditor {
 
   renderLegend() {
     const fragment = document.createDocumentFragment();
+    this.legend.textContent = "";
 
     Object.entries(this.colorMap).forEach(([value, color]) => {
       const item = document.createElement("div");
       item.className = "legend__item";
+      item.dataset.value = value;
 
       const swatch = document.createElement("span");
       swatch.className = "legend__color";
       swatch.style.backgroundColor = color;
+      swatch.title = `Cambiar color ${value}`;
+      swatch.addEventListener("click", (event) => {
+        this.openColorPickerForValue(value, event);
+      });
 
       const label = document.createElement("span");
+      label.className = "legend__label";
       label.textContent = `${value} = ${color}`;
 
       item.append(swatch, label);
@@ -329,7 +486,10 @@ export class PixelArtEditor {
       cell.dataset.row = String(rowIndex);
       cell.dataset.column = String(columnIndex);
       cell.setAttribute("role", "textbox");
-      cell.setAttribute("aria-label", `Fila ${rowIndex + 1}, columna ${columnIndex + 1}`);
+      cell.setAttribute(
+        "aria-label",
+        `Fila ${rowIndex + 1}, columna ${columnIndex + 1}`,
+      );
 
       cell.addEventListener("mousedown", (event) => {
         if (event.button !== 0 || this.isTemplateAnimating) {
@@ -359,7 +519,9 @@ export class PixelArtEditor {
           return;
         }
 
-        const normalizedValue = this.matrix.normalizeTextValue(cell.textContent);
+        const normalizedValue = this.matrix.normalizeTextValue(
+          cell.textContent,
+        );
         this.applyValueToCell(rowIndex, columnIndex, normalizedValue, true);
       });
 
@@ -368,7 +530,9 @@ export class PixelArtEditor {
           return;
         }
 
-        const normalizedValue = this.matrix.normalizeTextValue(cell.textContent);
+        const normalizedValue = this.matrix.normalizeTextValue(
+          cell.textContent,
+        );
         this.applyValueToCell(rowIndex, columnIndex, normalizedValue, true);
       });
 
@@ -398,7 +562,9 @@ export class PixelArtEditor {
   }
 
   updatePixel(rowIndex, columnIndex, value) {
-    const pixel = this.pixelArtGrid.querySelector(`[data-row="${rowIndex}"][data-column="${columnIndex}"]`);
+    const pixel = this.pixelArtGrid.querySelector(
+      `[data-row="${rowIndex}"][data-column="${columnIndex}"]`,
+    );
     if (!pixel) {
       return;
     }
@@ -437,7 +603,7 @@ export class PixelArtEditor {
 
       if (this.selectedCells.size === 1) {
         const onlyKey = this.selectedCells.values().next().value;
-        const { rowIndex, columnIndex } = this.parseCellKey(onlyKey);
+        const { rowIndex, columnIndex } = parseCellKey(onlyKey);
         this.lastSingleEdit = { rowIndex, columnIndex, value: nextValue };
       }
     });

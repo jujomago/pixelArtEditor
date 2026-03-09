@@ -7,27 +7,36 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+    <span class="theme-toggle-icon">🌙</span>
+  </button>
   <main class="layout">
     <section class="panel">
       <div class="panel__header">
-        <p class="eyebrow">Pixel Art Dinamico</p>
-        <h1>Matriz 20 x 20</h1>
+        <h1>Editor de Pixel Art</h1>
         <p class="description">
-          Cada celda acepta valores entre 0 y 9. Al cambiar un numero, el pixel se actualiza
-          automaticamente con su color asignado.
+          Edita los valores de la matriz (0-9) para crear tu propio arte pixelado. 
+          Cada número corresponde a un color de la paleta. Además, puedes 
+          <strong>hacer clic en los colores</strong> de la leyenda para cambiar la paleta,
+          y <strong>seleccionar varias celdas</strong> manteniendo el clic y arrastrando, 
+          luego presiona un número para aplicar ese color a toda la selección.
         </p>
-        <div class="template-selector">
-          <label for="pixel-art-template">Plantilla pixel art</label>
-          <select id="pixel-art-template" aria-label="Seleccionar plantilla pixel art">
-            <option value="leon">Leon</option>
-            <option value="conejo">Conejo</option>
-            <option value="perro">Perro</option>
-            <option value="mario">Mario</option>
-          </select>
-        </div>
-        <div class="editor-actions">
-          <button type="button" id="clear-grid-btn">Limpiar</button>
-          <button type="button" id="export-grid-btn">Exportar matriz</button>
+        <div class="controls-row">
+          <div class="template-selector">
+            <label for="pixel-art-template">Plantilla pixel art</label>
+            <select id="pixel-art-template" aria-label="Seleccionar plantilla pixel art">
+              <option value="" selected>Ninguno</option>
+              <option value="leon">Leon</option>
+              <option value="conejo">Conejo</option>
+              <option value="perro">Perro</option>
+              <option value="mario">Mario</option>
+              <option value="espada">Espada Minecraft</option>
+            </select>
+          </div>
+          <div class="editor-actions">
+            <button type="button" id="clear-grid-btn">Limpiar</button>
+            <button type="button" id="export-grid-btn">Exportar matriz</button>
+          </div>
         </div>
       </div>
 
@@ -42,14 +51,25 @@
 
     <section class="panel panel--preview">
       <div class="panel__header">
-        <p class="eyebrow">Vista Previa</p>
-        <h2>Render de pixeles</h2>
+        <p class="eyebrow">Vista en vivo</p>
+        <h2>Vista previa</h2>
       </div>
 
       <div class="pixel-art" id="pixel-art" aria-label="Vista previa de pixel art"></div>
+      <div class="preview-controls">
+        <button type="button" class="scale-btn" data-scale="0.2">Pequeño</button>
+        <button type="button" class="scale-btn" data-scale="0.5">Mediano</button>
+        <button type="button" class="scale-btn" data-scale="1">Normal</button>
+      </div>
+      <button type="button" id="export-image-btn">Exportar imagen</button>
     </section>
   </main>
+
+  <footer class="copyright">
+    <a href="https://josuemancilla.vercel.app" target="_blank" rel="noopener">© 2026 Josue Mancilla</a>
+  </footer>
 
   <script type="module" src="script.js"></script>
 </body>
 </html>
+
